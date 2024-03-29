@@ -1,0 +1,15 @@
+#! /bin/bash
+#
+# Copyright 2024 Oxide Computer Company
+#
+
+HOST="ethx-$1-bmc"
+OP="$2"
+
+HOSTIP="$(getent hosts "${HOST}" | awk '{ print $1 }')"
+
+IPMITOOL="spv_ipmi -I lanplus -H ${HOSTIP} -U ADMIN -P ADMIN"
+
+[[ -z "${HOSTIP}" ]] && exit 2
+
+${IPMITOOL} chassis power ${OP}

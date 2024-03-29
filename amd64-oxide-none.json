@@ -1,0 +1,36 @@
+{
+	"llvm-target": "x86_64-unknown-none-elf",
+	"target-pointer-width": "64",
+	"arch": "x86_64",
+	"data-layout": "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128",
+
+	"os": "none",
+	"vendor": "oxide",
+
+	"linker-flavor": "ld",
+	"linker": "ld",
+	"linker-is-gnu": true,
+	"pre-link-args": {
+		"ld": [
+			"-nostdlib",
+			"-static"
+		],
+		"gcc": [
+			"-m64",
+			"-nostdlib",
+			"-nostartfiles",
+			"-static"
+		]
+	},
+	"no-default-libraries": true,
+	"executables": true,
+	"exe-suffix": ".elf",
+
+	"frame-pointer": "always",
+	"max-atomic-width": 64,
+	"panic-strategy": "abort",
+	"eh-frame-header": false,
+	"crt-static-respected": true,
+	"relocation-model": "static",
+	"features": "-3dnow,-3dnowa,-avx,-avx2,-avx512bf16,-f16c,-fxsr,-mmx,-sse,-sse2,-sse3,-sse4.1,-sse4.2,-sse4a,-ssse3,-x87,-soft-float"
+}

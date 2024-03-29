@@ -1,0 +1,200 @@
+/*
+ * Copyright 2024 Oxide Computer Company
+ */
+
+OUTPUT_ARCH("i386:x86-64")
+
+/*
+ * Architectural constants used in math.  Do not change.
+ */
+HIDDEN(__PAGE_SHIFT = 12);
+HIDDEN(__PAGE_SIZE = (1 << __PAGE_SHIFT));
+HIDDEN(__SEG_SIZE = 64K);
+HIDDEN(__TOP_RAM = 0x80000000);
+HIDDEN(__MIN_PAGETABLES = 15);
+
+/*
+ * Addresses and layout
+ *
+ * The bootblock is the only code sensitive to our layout in memory; see the
+ * block comment at the top of start.s.  The parameters here are required only
+ * because the link-editor doesn't know how to work backwards from the reset
+ * vector code, which is architecturally required to start 0x10 bytes below
+ * the end of a 64 KiB segment.  Since the link-editor can't do it, you the
+ * engineer must.  It is unlikely that you are adding much if anything to the
+ * bootblock, but as the loader itself grows more space must be set aside for
+ * it.
+ *
+ * _BL_SPACE is the number of bytes reserved for the loader's text and data,
+ * including the bootblock but excluding the stack and BSS (which contains the
+ * pagetable space).  That is, it is the size of the image that will be written
+ * to flash, so it should not be enlarged unnecessarily.  It must be an even
+ * multiple of __PAGE_SIZE.
+ *
+ * _BL_BOOTBLOCK_SPACE is the number of bytes reserved for the bootblock, which
+ * is the text and data found in start.s, including the reset vector.
+ *
+ * _BL_STACK_PAGES is the number of pages mapped in for the loader's initial
+ * stack (below the loader in RAM).
+ *
+ * _BL_BSS_SEGS is the number of 64 KiB segments reserved for the BSS,
+ * including the initial pagetables.
+ */
+HIDDEN(_BL_SPACE = 240K);
+HIDDEN(_BL_BOOTBLOCK_SPACE = 0x300);
+HIDDEN(_BL_STACK_PAGES = 8);
+HIDDEN(_BL_BSS_SEGS = 1);
+
+/*
+ * The remainder should be considered software, and should not normally need
+ * to be modified.
+ */
+
+ASSERT((_BL_SPACE & (__PAGE_SIZE - 1)) == 0,
+    "Error: _BL_SPACE is not a multiple of the page size");
+
+/*
+ * Address of the byte beyond the end of the loader once loaded into RAM.
+ */
+HIDDEN(__eloader = __TOP_RAM - _BL_BSS_SEGS * __SEG_SIZE);
+
+/*
+ * Address of the first byte of the loader once loaded into RAM.
+ */
+HIDDEN(__sloader = __eloader - _BL_SPACE);
+
+ASSERT((__sloader & (__PAGE_SIZE - 1)) == 0,
+    "Error: loader is not aligned to a page boundary");
+
+/*
+ * Address of the start (lower limit) and end of the stack; the end address is
+ * the initial value of the stack pointer and the lowest address of the
+ * loader's image in RAM.
+ */
+HIDDEN(__sstack = __sloader - _BL_STACK_PAGES * __PAGE_SIZE);
+HIDDEN(__estack = __sloader);
+
+ASSERT((__sstack & (__PAGE_SIZE - 1)) == 0,
+    "Error in linker script: __sstack is not page-aligned");
+
+ENTRY(_reset);
+
+PHDRS {
+	text PT_LOAD AT ( __sloader ) ;
+	data PT_LOAD ;
+	rodata PT_LOAD ;
+	bootblock PT_LOAD AT ( __sbootblock ) ;
+	bss PT_LOAD AT ( __sbss ) ;
+}
+
+SECTIONS {
+	.text __sloader : {
+		*(.text)
+		*(.text.*)
+	} :text = 0xff
+
+	.data : {
+		*(.data)
+		*(.data.*)
+	} :data = 0xff
+
+	.rodata : {
+		*(.rodata)
+		*(.rodata.*)
+	} :rodata = 0xff
+
+	/*
+	 * One may think of this as an assertion that there is no GOT; if it
+	 * fails, the link-editing step will fail with a message of the form:
+	 *
+	 * 	ld: final link failed: section has no contents
+	 *
+	 * This is a somewhat confusing message, in that we *want* the GOT to
+	 * have no contents.  Nevertheless, if a GOT is generated, the (NOLOAD)
+	 * here will induce that error.  The most common cause of this that I
+	 * have found is trying to reference a symbol in the top half of the
+	 * 32-bit space, which we can't do because we're a small code model
+	 * program.  Nothing actually lives there, and we assert the hell out
+	 * of that here, but there is one collection of symbols that have the
+	 * value 0x8000_0000 -- like __TOP_RAM and __ebss.  If you're using
+	 * those or possibly taking the address of any extern symbol from
+	 * Rust by doing something like
+	 *
+	 * extern "system" {
+	 * 	static __ebss: MaybeUninit<u8>;
+	 * }
+	 * ...
+	 * let addr = unsafe { (&__ebss) } as *const _ as usize;
+	 *
+	 * then you probably need to look at the examples in src/mem_regions.rs
+	 * and src/pagetable_impl.rs to see some gross ways of working around
+	 * this problem.
+	 */
+	.got (NOLOAD) : {
+		KEEP(*(.got))
+		KEEP(*(.got.*))
+	}
+
+	.boot.rodata ALIGN(__SEG_SIZE) - _BL_BOOTBLOCK_SPACE : {
+		__sbootblock = ABSOLUTE(.);
+		__bootblock_segbase = ABSOLUTE(.) & ~(__SEG_SIZE - 1);
+		__bootblock_segoff = ABSOLUTE(.) & (__SEG_SIZE - 1);
+
+		KEEP(*(.boot.rodata))
+	} :bootblock = 0x00
+
+	.boot.text ALIGN(0x100) : {
+		KEEP(*(.boot.text))
+	} :bootblock = 0x90
+
+	.boot.reset ALIGN(__SEG_SIZE) - 0x10 : {
+		KEEP(*(.boot.reset))
+	} :bootblock = 0x90
+
+	.bss : {
+		__sbss = ABSOLUTE(.);
+		*(.bss)
+		*(.bss.*)
+		*(.pagetables)
+		. = ALIGN(__SEG_SIZE);
+		__PAGETABLE_SPACE = ABSOLUTE(. - __spagetable);
+		__ebss = ABSOLUTE(.);
+	} :bss = 0x00
+
+	/DISCARD/ : {
+		*(.comment)
+		*(.note.*)
+		*(.note)
+		*(.eh_frame)
+	}
+}
+
+ASSERT((__spagetable & (__PAGE_SIZE - 1)) == 0,
+    "Error: pagetable base is not page-aligned");
+ASSERT((__spagetable + __PAGETABLE_SPACE) >= __epagetable,
+    "Error: __epagetable is beyond the end of pagetable space");
+
+ASSERT((ADDR(.boot.reset) & ~(__SEG_SIZE - 1)) == __bootblock_segbase,
+    "Error: Reset vector is outside the bootblock");
+ASSERT((_reset & (__SEG_SIZE - 1)) == 0xfff0,
+    "Error: Reset vector is at the wrong offset to its segment base");
+ASSERT(SIZEOF(.boot.reset) == 0x10, "Error: .boot.reset has incorrect size");
+
+/*
+ * The code in src/start.s relies on the entire mapped region of the loader
+ * including its stack being mappable by a single PDE worth of PTEs.  If it
+ * is not, the initial pagetable construction code there must be extended to
+ * cope.  To prevent time wasted debugging, we fail with a clear error at
+ * build time if this is necessary.
+ */
+ASSERT((__sstack & 0xFFE00000) == ((__ebss - 1) & 0xFFE00000),
+    "Error in program layout: Loader+stack cannot be mapped by one pagetable");
+ASSERT((__ebss & (__PAGE_SIZE - 1)) == 0,
+    "Error in link-editor configuration: __ebss is not page-aligned");
+
+/*
+ * See src/pagetable_impl.rs and our contract with loaded programs.
+ */
+ASSERT(((__ebss - __spagetable) >> __PAGE_SHIFT) >= __MIN_PAGETABLES,
+    "Error: too few pagetables available; is Rust's BSS too large?");
+ASSERT(__ebss <= __TOP_RAM, "Error: loader extends beyond RAM");

@@ -1,0 +1,41 @@
+[package]
+name = "nanobl-rs"
+version = "0.6.0"
+authors = ["Oxide Computer Company"]
+edition = "2021"
+
+[dependencies]
+"tock-registers" = "0.7"
+"static_assertions" = "1.1"
+"embedded-hal" = "0.2.7"
+"miniz_oxide" = { version = "0.6", default-features = false }
+"nb" = "1.0.0"
+"void" = { version = "1.0.2", default-features = false }
+"lazy_static" = { version = "1.4", features = [ "spin_no_std" ] }
+"num-traits" = { version = "0.2", default-features = false }
+"goblin" = { version = "0.5", default-features = false, features = [ "elf64" ] }
+"xmodem" = { version = "0.4", default-features = false }
+"x86" = "0.47"
+"heapless" = "0.7.12"
+"bitflags" = "1.3.2"
+"seq-macro" = "0.3"
+
+[patch.crates-io]
+# XXX This appears to be abandoned, and we should probably publish a new one.
+xmodem = { git = "https://github.com/oxidecomputer/xmodem.rs" }
+
+[lib]
+name = "nanobl_util"
+path = "src/lib.rs"
+
+[features]
+default = ["x86_paddr", "x86_vaddr", "prompt_animation"]
+x86_paddr = []
+x86_vaddr = []
+echo = []
+prompt_animation = []
+auto_reboot = []
+panic_console = []
+
+[profile.dev]
+opt-level = 2

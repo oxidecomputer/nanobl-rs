@@ -1,0 +1,70 @@
+#! /bin/bash
+#
+# Copyright 2024 Oxide Computer Company
+#
+
+#
+# The security model assumes a safe, trusted network; this is always necessary
+# with anything involving IPMI.  The protocol is so insecure that there's
+# little point in offering options for credentials.
+#
+
+HOST="ethx-$1-bmc"
+OP="$2"
+FILE="$3"
+SPV_IPMI="spv_ipmi"
+ROOT=$(dirname $0)
+
+#
+# This most wonderful and excellent piece of binary-only software dumps core
+# if a hostname is used.  We look up the address for the same reason we
+# change infants' diapers.
+#
+HOSTIP="$(getent hosts "${HOST}" | awk '{ print $1 }')"
+
+if ! which spv_ipmi 2>/dev/null 1>/dev/null; then
+	if [[ -x "${ROOT}/amd64-linux-gnu/spv_ipmi" && \
+	    $(uname) == "Linux" ]]; then
+		SPV_IPMI="${ROOT}/amd64-linux-gnu/spv_ipmi"
+	else
+		printf "Missing required spv_ipmi\n" >&2
+		exit 1
+	fi
+fi
+
+IPMITOOL="$SPV_IPMI -I lanplus -H ${HOSTIP} -U ADMIN -P ADMIN"
+
+if [[ -z "${HOSTIP}" ]]; then
+	printf "Failed to translate host %s to IP\n" "${HOST}" >&2
+	exit 2
+fi
+
+state="$(${IPMITOOL} chassis power status 2>/dev/null)"
+[[ "${state}" == "Chassis Power is off" ]] || {
+	${IPMITOOL} chassis power off 2>/dev/null
+	sleep 5
+}
+
+case "${OP}" in
+get)
+	if [[ -z "${FILE}" ]]; then
+		printf "Missing file to %s\n" "${OP}" >&2
+		exit 3
+	fi
+
+	OP=download
+	SZ=16MB
+	;;
+put)
+	if [[ ! -r "${FILE}" ]]; then
+		printf "Missing file to %s\n" "${OP}" >&2
+		exit 3
+	fi
+	OP=update
+	;;
+reset)
+	OP=reset
+	;;
+esac
+
+${IPMITOOL} isc bios ${OP} ${FILE} ${SZ}
