@@ -1,14 +1,11 @@
 /*
- * Copyright 2024 Oxide Computer Company
+ * Copyright 2025 Oxide Computer Company
  */
 
 #![no_std]
 #![no_main]
-#![feature(core_panic)]
 #![feature(naked_functions)]
-#![feature(str_split_whitespace_as_str)]
-#![forbid(clippy::inline_asm_x86_intel_syntax)]
-#![warn(rust_2018_idioms)]
+#![feature(str_split_whitespace_remainder)]
 
 use core::arch::global_asm;
 
@@ -61,7 +58,7 @@ mod loader {
 		println!();
 		print!("Nano-Bootloader {} ", env!("CARGO_PKG_VERSION"));
 		println_features();
-		println!("Copyright 2024 Oxide Computer Company");
+		println!("Copyright 2025 Oxide Computer Company");
 		println!("All Rights Reserved.");
 		println!();
 

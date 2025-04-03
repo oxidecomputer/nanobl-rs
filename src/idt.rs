@@ -3,11 +3,11 @@
  * https://github.com/dancrossnyc/rxv64/blob/main/AUTHORS.
  *
  * Copyright 2019 The rxv64 Authors
- * Copyright 2024 Oxide Computer Company
+ * Copyright 2025 Oxide Computer Company
  */
 
 use crate::{panic, println};
-use core::arch::asm;
+use core::arch::{asm, naked_asm};
 use core::ptr;
 use seq_macro::seq;
 
@@ -97,18 +97,18 @@ macro_rules! gen_stub {
 		#[allow(dead_code)]
 		#[naked]
 		unsafe extern "C" fn $name() -> ! {
-			asm!("pushq $0; pushq ${}; jmp {}",
+			naked_asm!("pushq $0; pushq ${}; jmp {}",
 				const $vecnum, sym alltraps,
-				options(att_syntax, noreturn));
+				options(att_syntax))
 		}
 	};
 	($name:ident, $vecnum:expr, err) => {
 		#[allow(dead_code)]
 		#[naked]
 		unsafe extern "C" fn $name() -> ! {
-			asm!("pushq ${}; jmp {}",
+			naked_asm!("pushq ${}; jmp {}",
 				const $vecnum, sym alltraps,
-				options(att_syntax, noreturn));
+				options(att_syntax))
 		}
 	};
 }
@@ -149,7 +149,7 @@ seq!(N in 0..=255 {
 
 #[naked]
 unsafe extern "C" fn alltraps() -> ! {
-	asm!(r#"
+	naked_asm!(r#"
 		// Save the x86 segmentation registers.
 		subq $32, %rsp
 		movq $0, 24(%rsp);
@@ -202,7 +202,7 @@ unsafe extern "C" fn alltraps() -> ! {
 		iretq;
 		"#,
 		trap = sym trap,
-		options(att_syntax, noreturn));
+		options(att_syntax))
 }
 
 #[repr(C, align(4096))]
@@ -295,9 +295,11 @@ pub fn init() {
 	if INITED.swap(true, Ordering::AcqRel) {
 		panic!("IDT already initialized");
 	}
+	static mut NANOIDT: Idt = Idt::empty();
+	let nanoidt = &raw mut NANOIDT;
+	let nanoidt = unsafe { &mut *nanoidt };
+	nanoidt.init();
 	unsafe {
-		static mut NANOIDT: Idt = Idt::empty();
-		NANOIDT.init();
-		lidt(&NANOIDT);
+		lidt(nanoidt);
 	}
 }

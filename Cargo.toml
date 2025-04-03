@@ -22,7 +22,7 @@ edition = "2021"
 
 [patch.crates-io]
 # XXX This appears to be abandoned, and we should probably publish a new one.
-xmodem = { git = "https://github.com/oxidecomputer/xmodem.rs" }
+xmodem = { git = "https://github.com/oxidecomputer/xmodem.rs", branch = "pr" }
 
 [lib]
 name = "nanobl_util"

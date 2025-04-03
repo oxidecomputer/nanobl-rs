@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Oxide Computer Company
+ * Copyright 2025 Oxide Computer Company
  */
 
 use api::LcmdDefn;
@@ -228,7 +228,7 @@ mod api_impl {
 						addr: None,
 						count: None,
 					},
-					args: iter.as_str(),
+					args: iter.remainder().unwrap_or(""),
 				}));
 			}
 			let addrcountstr = oaddrcountstr.unwrap();
@@ -239,7 +239,7 @@ mod api_impl {
 						addr: None,
 						count: None,
 					},
-					args: iter.as_str(),
+					args: iter.remainder().unwrap_or(""),
 				}));
 			}
 
@@ -279,7 +279,7 @@ mod api_impl {
 					addr: oaddr,
 					count: ocount,
 				},
-				args: iter.as_str(),
+				args: iter.remainder().unwrap_or(""),
 			})
 		}
 

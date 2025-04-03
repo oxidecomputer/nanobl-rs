@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Oxide Computer Company
+ * Copyright 2025 Oxide Computer Company
  */
 
 use crate::println;
@@ -192,9 +192,9 @@ impl core::fmt::Write for PanicBuf {
  * cookies, ain't it?
  */
 #[panic_handler]
-pub fn panic(pi: &PanicInfo<'_>) -> ! {
-	static mut lock: AtomicBool = AtomicBool::new(true);
-	static mut pbuf: PanicBuf = PanicBuf::new();
+pub fn panic(pi: &PanicInfo) -> ! {
+	static LOCK: AtomicBool = AtomicBool::new(true);
+	static mut PBUF: PanicBuf = PanicBuf::new();
 
 	/*
 	 * Safe because this crate is for use only at CPL = 0.
@@ -206,29 +206,24 @@ pub fn panic(pi: &PanicInfo<'_>) -> ! {
 	/*
 	 * Safe because it's atomic.
 	 */
-	if (unsafe {
-		lock.compare_exchange(
+	if (LOCK.compare_exchange(
 			true,
 			false,
 			Ordering::Acquire,
 			Ordering::Relaxed,
-		)
-	}
-	.unwrap_or(false))
-	{
-		if let Some(msg) = pi.message() {
-			/*
-			 * Safe because we are protected by lock.
-			 */
-			unsafe {
-				write!(&mut pbuf, "{msg}").unwrap_or(());
-			}
-		}
+	).unwrap_or(false)) {
+		/*
+		 * Safe because we are protected by lock.
+		 */
+		let pbuf = &raw mut PBUF;
+		let pbuf = unsafe { &mut *pbuf };
+		let msg = pi.message();
+		write!(pbuf, "{msg}").unwrap_or(());
 
 		/*
 		 * Safe because we are protected by lock.
 		 */
-		postcode(unsafe { pbuf.get_code() });
+		postcode(pbuf.get_code());
 
 		/*
 		 * If a panic occurs during an XMODEM transfer or within the
