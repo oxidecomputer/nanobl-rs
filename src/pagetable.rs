@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Oxide Computer Company
+ * Copyright 2025 Oxide Computer Company
  */
 
 use crate::prelude::*;
@@ -241,6 +241,7 @@ impl_pagetable!(L3PT, L3Entry);
 impl_pagetable!(L2PT, L2Entry);
 impl_pagetable!(L1PT, L1Entry);
 
+#[allow(dead_code)]
 pub struct Terminator(u8);
 
 impl Index<usize> for Terminator {

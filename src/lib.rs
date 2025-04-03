@@ -1,12 +1,9 @@
 /*
- * Copyright 2024 Oxide Computer Company
+ * Copyright 2025 Oxide Computer Company
  */
 
 #![no_std]
-#![feature(asm_const)]
 #![feature(naked_functions)]
-#![feature(panic_info_message)]
-#![warn(rust_2018_idioms)]
 
 pub mod console;
 pub(crate) mod dw_apb_uart;

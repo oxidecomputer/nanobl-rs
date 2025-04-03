@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Oxide Computer Company
+ * Copyright 2025 Oxide Computer Company
  */
 
 use bitflags::bitflags;
@@ -150,7 +150,8 @@ where
 			init_pagetables();
 		}
 
-		if let Some(freeidx) = FREEMAP.lowest_bit() {
+		let map = FREEMAP;
+		if let Some(freeidx) = map.lowest_bit() {
 			FREEMAP &= !Mask64::bit(freeidx);
 			let pageptr = (SPAGETABLE +
 				((freeidx.count() as usize) <<
@@ -206,7 +207,6 @@ fn invlpg(vaddr: *const u8) {
  * fifth) look at x86_64's Mapper is probably in order.
  */
 unsafe fn pte_deref<T: PageTableEntry>(entry: &T) -> &T::Target {
-	#[cfg(not(test))]
 	assert!(is_safe(entry));
 
 	let paddr = entry.child_paddr().unwrap().as_usize();
@@ -214,7 +214,6 @@ unsafe fn pte_deref<T: PageTableEntry>(entry: &T) -> &T::Target {
 }
 
 unsafe fn pte_deref_mut<T: PageTableEntry>(entry: &mut T) -> &mut T::Target {
-	#[cfg(not(test))]
 	assert!(is_safe(entry));
 
 	let paddr = entry.child_paddr().unwrap().as_usize();

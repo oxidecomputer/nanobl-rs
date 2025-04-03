@@ -1,10 +1,10 @@
 /*
- * Copyright 2024 Oxide Computer Company
+ * Copyright 2025 Oxide Computer Company
  */
 
 use super::api::*;
 use crate::pagetable_impl;
-use core::arch::asm;
+use core::arch::naked_asm;
 use nanobl_util::mem_regions;
 use nanobl_util::region_builder::RegionBuilder;
 
@@ -94,10 +94,10 @@ fn call(inst: LcmdInstance<'_>) -> Result<LcmdValue, LcmdError> {
 		arg5: u64,
 		target: u64,
 	) -> u64 {
-		asm!(
+		naked_asm!(
 			"movq 8(%rsp), %rax",
 			"jmp *%rax",
-			options(att_syntax, noreturn)
+			options(att_syntax)
 		);
 	}
 
