@@ -25,7 +25,7 @@ endif
 
 CARGO_BUILD_FLAGS =	\
 	-Z unstable-options	\
-	--out-dir $(OUTPUT_DIR)
+	--artifact-dir $(OUTPUT_DIR)
 
 ELF = $(OUTPUT_DIR)/nanobl-rs.elf
 SYMMAP = $(ELF:%.elf=%.map)

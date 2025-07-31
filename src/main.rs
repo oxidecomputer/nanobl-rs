@@ -4,7 +4,6 @@
 
 #![no_std]
 #![no_main]
-#![feature(naked_functions)]
 #![feature(str_split_whitespace_remainder)]
 
 use core::arch::global_asm;

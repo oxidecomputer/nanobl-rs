@@ -3,7 +3,6 @@
  */
 
 #![no_std]
-#![feature(naked_functions)]
 
 pub mod console;
 pub(crate) mod dw_apb_uart;

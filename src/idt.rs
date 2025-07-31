@@ -95,7 +95,7 @@ struct TrapFrame {
 macro_rules! gen_stub {
 	($name:ident, $vecnum:expr) => {
 		#[allow(dead_code)]
-		#[naked]
+		#[unsafe(naked)]
 		unsafe extern "C" fn $name() -> ! {
 			naked_asm!("pushq $0; pushq ${}; jmp {}",
 				const $vecnum, sym alltraps,
@@ -104,7 +104,7 @@ macro_rules! gen_stub {
 	};
 	($name:ident, $vecnum:expr, err) => {
 		#[allow(dead_code)]
-		#[naked]
+		#[unsafe(naked)]
 		unsafe extern "C" fn $name() -> ! {
 			naked_asm!("pushq ${}; jmp {}",
 				const $vecnum, sym alltraps,
@@ -147,7 +147,7 @@ seq!(N in 0..=255 {
 	gen_vector_stub!(vector~N, N);
 });
 
-#[naked]
+#[unsafe(naked)]
 unsafe extern "C" fn alltraps() -> ! {
 	naked_asm!(r#"
 		// Save the x86 segmentation registers.

@@ -83,7 +83,7 @@ fn call(inst: LcmdInstance<'_>) -> Result<LcmdValue, LcmdError> {
 	 * because these are not in fact unused.
 	 */
 	#[cfg(target_pointer_width = "64")]
-	#[naked]
+	#[unsafe(naked)]
 	#[allow(unused)]
 	unsafe extern "system" fn foreign_call(
 		arg0: u64,
