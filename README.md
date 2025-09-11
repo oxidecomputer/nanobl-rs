@@ -1,4 +1,9 @@
-# Nanobl-rs, an AMD64 bootloader
+# Nanobl-rs, an AMD64 bootloader (DEPRECATED)
+
+**THIS SOFTWARE IS DEPRECATED**
+
+This code is no longer used at Oxide, and has been replaced by
+[bldb](https://github.com/oxidecomputer/bldb).
 
 > [!NOTE]
 > This software is not used in the Oxide Computer, directly or indirectly.
